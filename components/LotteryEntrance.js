@@ -7,7 +7,7 @@ import { useNotification } from "web3uikit";
 export default function LotteryEntrance() {
     const { chainId: chainIdHex, isWeb3Enabled } = useMoralis();
     const chainId = parseInt(chainIdHex);
-    console.log(chainId)
+    console.log(chainId);
     const raffleAddress =
         chainId in contractAddresses ? contractAddresses[chainId][0] : null;
     console.log(raffleAddress);
@@ -18,7 +18,12 @@ export default function LotteryEntrance() {
 
     const dispatch = useNotification();
 
-    const { runContractFunction: enterRaffle } = useWeb3Contract({
+    const {
+        runContractFunction: enterRaffle,
+        data: enterTxResponse,
+        isLoading,
+        isFetching,
+    } = useWeb3Contract({
         abi: abi,
         contractAddress: raffleAddress,
         functionName: "enterRaffle",
@@ -54,9 +59,9 @@ export default function LotteryEntrance() {
         setEntranceFee(entranceFeeFromCall);
         setNumPlayers(numPlayersFromCall);
         setRecentWinner(recentWinnerFromCall);
-        console.log(numPlayersFromCall)
-        console.log(recentWinnerFromCall)
-        console.log(entranceFeeFromCall)
+        console.log(numPlayersFromCall);
+        console.log(recentWinnerFromCall);
+        console.log(entranceFeeFromCall);
         console.log(ethers.utils.formatUnits(entranceFeeFromCall));
     }
 
@@ -68,9 +73,13 @@ export default function LotteryEntrance() {
     }, [isWeb3Enabled]);
 
     const handleSuccess = async function (tx) {
-        await tx.wait(1);
-        handleNewNotification(tx);
-        updateUI();
+        try {
+            await tx.wait(1);
+            handleNewNotification(tx);
+            updateUI();
+        } catch (error) {
+            console.log(error);
+        }
     };
 
     const handleNewNotification = function () {
@@ -87,26 +96,32 @@ export default function LotteryEntrance() {
 
     // Setup a portion to listen for emit WinnerPicked(requestId);
 
-
     return (
-        <div>
-            Hi from Lottery Entrance
+        <div className="p-5">
+            <h1 className="py-4 px-4 font bold text-3xl">
+                {" "}
+                Hi from Lottery Entrance
+            </h1>
             {raffleAddress ? (
-                <div>
+                <>
                     <button
+                        className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded ml-auto"
                         onClick={async function () {
                             await enterRaffle({
                                 onSuccess: handleSuccess,
                                 onError: (error) => console.log(error),
                             });
                         }}
+                        disabled={isLoading || isFetching}
                     >
                         Enter Raffle
                     </button>
-                    Entrance Fee: {ethers.utils.formatUnits(entranceFee)}
-                    Number of Players: {numPlayers}
-                    Recent Winner: {recentWinner}
-                </div>
+                    <div>
+                        Entrance Fee: {ethers.utils.formatUnits(entranceFee)}
+                    </div>
+                    <div>Number of Players: {numPlayers}</div>
+                    <div>Recent Winner: {recentWinner}</div>
+                </>
             ) : (
                 <div>No Raffle Address Detected</div>
             )}
